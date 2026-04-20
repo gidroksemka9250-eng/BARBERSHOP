@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Barbershop | Запись</title>
+    <style>
+        :root { --bg: #0d0d0d; --gold: #d4af37; --dark: #1a1a1a; --text: #f0f0f0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); overflow-x: hidden; }
+        
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(212, 175, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); } }
+        
+        header { text-align: center; padding: 3rem 1rem; background: linear-gradient(180deg, #000 0%, var(--bg) 100%); border-bottom: 1px solid #333; animation: fadeIn 1s ease-out; }
+        h1 { color: var(--gold); font-size: 2.5rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+        .support { color: #888; font-size: 0.9rem; }
+        .support span { color: var(--gold); font-weight: bold; }
+
+        .container { max-width: 600px; margin: 2rem auto; padding: 2rem; background: var(--dark); border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; animation: fadeIn 1.2s ease-out; }
+        
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; color: var(--gold); font-weight: 600; text-transform: uppercase; font-size: 0.8rem; }
+        input, select { width: 100%; padding: 12px; background: #000; border: 1px solid #333; color: white; border-radius: 8px; outline: none; transition: border 0.3s; }
+        input:focus, select:focus { border-color: var(--gold); }
+        
+        input[type="file"] { padding: 8px; background: transparent; border: none; }
+        
+        button { width: 100%; padding: 15px; background: var(--gold); color: #000; font-weight: bold; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; transition: all 0.3s; animation: pulse 2s infinite; }
+        button:hover { background: #b5952f; transform: scale(1.02); }
+
+        /* Status Screen */
+        #statusScreen { display: none; text-align: center; padding: 2rem 0; }
+        .status-icon { font-size: 4rem; margin-bottom: 1rem; }
+        .status-text { font-size: 1.5rem; color: var(--gold); margin-bottom: 1rem; }
+        .status-approved { color: #4CAF50; }
+        .status-cancelled { color: #F44336; }
+        .status-reschedule { color: #FF9800; }
+        
+        .loader { border: 4px solid #333; border-top: 4px solid var(--gold); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Barbershop</h1>
+    <div class="support">Тех. поддержка: <span>@EliteArchangel</span> | +7(999) 561-45-25</div>
+</header>
+
+<div class="container" id="appContainer">
+    <form id="bookingForm">
+        <div class="form-group">
+            <label>Выберите салон</label>
+            <select id="address" required>
+                <option value="address1">Ул. Центральная, 1 (Первый салон)</option>
+                <option value="address2">Ул. Ленина, 25 (Второй салон)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Дата</label>
+            <input type="date" id="date" required>
+        </div>
+        <div class="form-group">
+            <label>Время</label>
+            <input type="time" id="time" required>
+        </div>
+        <div class="form-group">
+            <label>Номер телефона</label>
+            <input type="tel" id="phone" placeholder="+7 (999) 000-00-00" required>
+        </div>
+        <div class="form-group">
+            <label>Ваше фото (По желанию)</label>
+            <input type="file" id="photo" accept="image/*">
+        </div>
+        <button type="submit" id="submitBtn">Записаться</button>
+    </form>
+
+    <div id="statusScreen">
+        <div id="statusDynamicContent">
+            <div class="loader"></div>
+            <p class="status-text" style="margin-top: 1rem;">Заявка на рассмотрении...</p>
+        </div>
+        <button onclick="resetBooking()" style="margin-top: 2rem; background: #333; color: white; animation: none;">Новая запись</button>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('bookingForm');
+    const statusScreen = document.getElementById('statusScreen');
+    const statusContent = document.getElementById('statusDynamicContent');
+    let pollingInterval;
+
+    // Конвертация файла в Base64 (Хакерский метод без FormData)
+    const getBase64 = (file) => new Promise((resolve, reject) => {
+        if (!file) return resolve(null);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+
+    // Проверка сессии при запуске
+    window.onload = () => {
+        const myId = localStorage.getItem('barber_booking_id');
+        if (myId) {
+            form.style.display = 'none';
+            statusScreen.style.display = 'block';
+            checkStatus(myId);
+            pollingInterval = setInterval(() => checkStatus(myId), 5000); // Опрос сервера каждые 5 сек
+        }
+    };
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        btn.innerText = 'Отправка...';
+        btn.disabled = true;
+
+        const photoFile = document.getElementById('photo').files[0];
+        const photoBase64 = await getBase64(photoFile);
+
+        const data = {
+            address: document.getElementById('address').value,
+            date: document.getElementById('date').value,
+            time: document.getElementById('time').value,
+            phone: document.getElementById('phone').value,
+            photo: photoBase64
+        };
+
+        try {
+            const res = await fetch('/api/book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            
+            if (result.success) {
+                localStorage.setItem('barber_booking_id', result.id);
+                form.style.display = 'none';
+                statusScreen.style.display = 'block';
+                checkStatus(result.id);
+                pollingInterval = setInterval(() => checkStatus(result.id), 5000);
+            }
+        } catch (err) {
+            alert('Ошибка сети! Мы используем резервный канал, попробуйте позже.');
+        } finally {
+            btn.innerText = 'Записаться';
+            btn.disabled = false;
+        }
+    });
+
+    async function checkStatus(id) {
+        try {
+            const res = await fetch(`/api/status/${id}`);
+            const data = await res.json();
+            
+            if (data.status === 'approved') {
+                statusContent.innerHTML = `<div class="status-icon">✅</div><p class="status-text status-approved">Одобрено!<br>Ждем вас в назначенное время.</p>`;
+                clearInterval(pollingInterval);
+            } else if (data.status === 'cancelled') {
+                statusContent.innerHTML = `<div class="status-icon">❌</div><p class="status-text status-cancelled">Отменено.<br>К сожалению, время недоступно.</p>`;
+                clearInterval(pollingInterval);
+            } else if (data.status === 'reschedule') {
+                statusContent.innerHTML = `<div class="status-icon">🔄</div><p class="status-text status-reschedule">Перенос!<br>С вами свяжется администратор.</p>`;
+                clearInterval(pollingInterval);
+            }
+        } catch (e) { console.log('Ожидание сервера...'); }
+    }
+
+    function resetBooking() {
+        localStorage.removeItem('barber_booking_id');
+        clearInterval(pollingInterval);
+        statusScreen.style.display = 'none';
+        form.style.display = 'block';
+        statusContent.innerHTML = `<div class="loader"></div><p class="status-text" style="margin-top: 1rem;">Заявка на рассмотрении...</p>`;
+    }
+</script>
+</body>
+</html>
