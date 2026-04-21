@@ -6,7 +6,7 @@
     <title>Bespoke Barbershop | Private Booking</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root { 
             --bg-base: #0a0d0b; 
@@ -32,6 +32,12 @@
         @keyframes fadeUp { 
             from { opacity: 0; transform: translateY(30px); } 
             to { opacity: 1; transform: translateY(0); } 
+        }
+
+        @keyframes pulseBorder {
+            0% { border-color: rgba(203, 161, 83, 0.2); box-shadow: 0 0 0 0 rgba(203, 161, 83, 0.2); }
+            50% { border-color: rgba(203, 161, 83, 0.8); box-shadow: 0 0 20px 0 rgba(203, 161, 83, 0.3); }
+            100% { border-color: rgba(203, 161, 83, 0.2); box-shadow: 0 0 0 0 rgba(203, 161, 83, 0); }
         }
         
         header { 
@@ -121,7 +127,7 @@
             width: 100%; padding: 18px; margin-top: 1rem;
             background: linear-gradient(135deg, #CBA153 0%, #A67C2E 100%); 
             color: #0a0d0b; font-family: 'Montserrat', sans-serif;
-            font-weight: 500; font-size: 0.9rem; letter-spacing: 3px;
+            font-weight: 600; font-size: 0.9rem; letter-spacing: 3px;
             border: none; border-radius: 2px; cursor: pointer; 
             text-transform: uppercase; transition: var(--transition-smooth); 
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
@@ -149,20 +155,34 @@
         .reset-btn { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); box-shadow: none; margin-top: 2.5rem; }
         .reset-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
 
-        /* Reschedule Action UI */
+        /* ADVANCED RESCHEDULE UI */
         .reschedule-box {
-            background: rgba(203, 161, 83, 0.05);
-            border: 1px dashed rgba(203, 161, 83, 0.3);
-            padding: 20px; border-radius: 4px; margin-top: 20px;
+            background: linear-gradient(180deg, rgba(203, 161, 83, 0.08) 0%, rgba(0,0,0,0) 100%);
+            border: 1px solid rgba(203, 161, 83, 0.3);
+            padding: 25px; 
+            border-radius: 4px; 
+            margin-top: 25px;
+            animation: pulseBorder 3s infinite;
         }
-        .reschedule-time { font-size: 1.4rem; font-weight: 600; color: #fff; margin: 10px 0; letter-spacing: 2px; }
-        .reschedule-actions { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-accept { background: #1F3826; color: #A8C69F; margin-top: 0; padding: 12px; font-size: 0.8rem; }
-        .btn-reject { background: #3D1F1F; color: #C69F9F; margin-top: 0; padding: 12px; font-size: 0.8rem; }
+        .reschedule-time { 
+            font-size: 1.8rem; 
+            font-weight: 600; 
+            color: #fff; 
+            margin: 15px 0; 
+            letter-spacing: 2px; 
+            font-family: 'Playfair Display', serif;
+            text-shadow: 0 0 10px rgba(203, 161, 83, 0.3);
+        }
+        .reschedule-actions { display: flex; gap: 15px; margin-top: 25px; }
+        .btn-accept { background: #1F3826; color: #A8C69F; margin-top: 0; padding: 15px; font-size: 0.8rem; flex: 1; border: 1px solid #33593D;}
+        .btn-accept:hover { background: #2F5239; box-shadow: 0 5px 15px rgba(168, 198, 159, 0.2); }
+        .btn-reject { background: #3D1F1F; color: #C69F9F; margin-top: 0; padding: 15px; font-size: 0.8rem; flex: 1; border: 1px solid #633333;}
+        .btn-reject:hover { background: #572A2A; box-shadow: 0 5px 15px rgba(198, 159, 159, 0.2); }
 
         @media (max-width: 600px) {
             .container { padding: 2rem; margin: 1rem; }
             h1 { font-size: 2rem; }
+            .reschedule-actions { flex-direction: column; }
         }
     </style>
 </head>
@@ -212,28 +232,37 @@
 
 <script>
     // =================================================================
-    // STEALTH NET ARCHITECTURE FOR CLIENT (RELIABILITY IS KEY)
+    // STEALTH NET ARCHITECTURE: ANTI-CACHE & FALLBACK ROUTING
     // =================================================================
     class StealthNet {
         static async send(url, payload) {
             const data = JSON.stringify(payload);
+            const bypassUrl = url + (url.includes('?') ? '&' : '?') + '_bc=' + Date.now(); // Cache-busting
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 8000);
-                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: data, signal: controller.signal });
+                const res = await fetch(bypassUrl, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }, 
+                    body: data, 
+                    signal: controller.signal 
+                });
                 clearTimeout(timeoutId);
                 if (res.ok) return await res.json();
                 throw new Error("Fetch failed");
             } catch (err1) {
+                console.warn("[StealthNet] Primary route failed, engaging XHR...");
                 return new Promise((resolve, reject) => {
                     const xhr = new XMLHttpRequest();
-                    xhr.open("POST", url, true);
+                    xhr.open("POST", bypassUrl, true);
                     xhr.setRequestHeader("Content-Type", "application/json");
+                    xhr.setRequestHeader("Cache-Control", "no-cache");
                     xhr.onload = () => {
                         if (xhr.status >= 200 && xhr.status < 300) resolve(JSON.parse(xhr.responseText));
                         else {
+                            console.warn("[StealthNet] XHR failed, engaging Beacon...");
                             const blob = new Blob([data], { type: 'application/json' });
-                            navigator.sendBeacon(url, blob) ? resolve({ success: true }) : reject(new Error("Net Fail"));
+                            navigator.sendBeacon(bypassUrl, blob) ? resolve({ success: true }) : reject(new Error("Net Fail"));
                         }
                     };
                     xhr.onerror = () => reject(new Error("Net Fail"));
@@ -270,7 +299,7 @@
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
-        btn.innerText = 'Авторизация...';
+        btn.innerText = 'Установка защищенного соединения...';
         btn.disabled = true;
 
         const photoBase64 = await getBase64(document.getElementById('photo').files[0]);
@@ -301,7 +330,9 @@
 
     async function checkStatus(id) {
         try {
-            const res = await fetch(`/api/status/${id}`);
+            // АНТИ-КЭШ: Браузер больше не сможет показать старое сообщение
+            const bypassUrl = `/api/status/${id}?_bc=${Date.now()}`;
+            const res = await fetch(bypassUrl, { headers: { 'Cache-Control': 'no-cache, no-store' } });
             const data = await res.json();
             
             if (data.status === 'approved') {
@@ -313,34 +344,38 @@
                 resetBtn.style.display = 'inline-block';
                 clearInterval(pollingInterval);
             } else if (data.status === 'reschedule') {
-                clearInterval(pollingInterval); // Останавливаем поллинг, пока клиент думает
-                resetBtn.style.display = 'none'; // Убираем кнопку "Новый визит", чтобы не сбивала
+                clearInterval(pollingInterval); // Останавливаем поллинг, ждем решения клиента
+                resetBtn.style.display = 'none'; 
                 
+                // ОТРИСОВКА ИНТЕРФЕЙСА ПЕРЕГОВОРОВ (NEGOTIATION UI)
                 statusContent.innerHTML = `
                     <div class="status-icon" style="color: #CBA153;">⟲</div>
-                    <p class="status-text status-reschedule">Мастер предлагает другое время</p>
+                    <p class="status-text status-reschedule">Мастер предложил<br>альтернативное время</p>
                     <div class="reschedule-box">
-                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Новое предложение:</div>
-                        <div class="reschedule-time">${data.proposedDate} <br> ${data.proposedTime}</div>
+                        <div style="font-size: 0.75rem; color: var(--gold-muted); text-transform: uppercase; letter-spacing: 2px;">Новая дата визита:</div>
+                        <div class="reschedule-time">${data.proposedDate}<br>${data.proposedTime}</div>
                         <div class="reschedule-actions">
-                            <button class="btn-accept" onclick="clientDecision('${id}', 'accept')">ОДОБРИТЬ</button>
+                            <button class="btn-accept" onclick="clientDecision('${id}', 'accept')">ПРИНЯТЬ ВРЕМЯ</button>
                             <button class="btn-reject" onclick="clientDecision('${id}', 'reject')">ОТКЛОНИТЬ</button>
                         </div>
                     </div>
                 `;
             }
-        } catch (e) { console.log('Ожидание сервера...'); }
+        } catch (e) { 
+            console.log('[POLLING] Network shadow timeout, retrying...'); 
+        }
     }
 
     async function clientDecision(id, action) {
         try {
-            statusContent.innerHTML = `<div class="loader"></div><p class="status-text">Передача протокола...</p>`;
+            statusContent.innerHTML = `<div class="loader"></div><p class="status-text">Синхронизация с сервером...</p>`;
             await StealthNet.send('/api/client/action', { id, action });
-            // Возвращаем поллинг, чтобы подтянуть финальный статус
+            
+            // Возобновляем поллинг, чтобы подтянуть финальный статус ('approved' или 'cancelled')
             checkStatus(id);
             pollingInterval = setInterval(() => checkStatus(id), 5000);
         } catch (e) {
-            alert('Сбой сети. Попробуйте еще раз.');
+            alert('Сбой защищенной сети. Попробуйте еще раз.');
             checkStatus(id); // Восстанавливаем UI
         }
     }
