@@ -10,7 +10,7 @@
     <style>
         :root { 
             --bg-base: #0a0d0b; 
-            --bg-surface: #111613; /* Deep British Racing Green */
+            --bg-surface: #111613; 
             --gold: #CBA153; 
             --gold-muted: #8A6D3B;
             --text-main: #EAEAEA;
@@ -29,14 +29,9 @@
             background-image: radial-gradient(circle at 50% 0%, #17211a 0%, transparent 70%);
         }
         
-        /* Elegant Animations */
         @keyframes fadeUp { 
             from { opacity: 0; transform: translateY(30px); } 
             to { opacity: 1; transform: translateY(0); } 
-        }
-        @keyframes shimmer { 
-            0% { background-position: -200% center; } 
-            100% { background-position: 200% center; } 
         }
         
         header { 
@@ -56,12 +51,7 @@
             text-transform: uppercase;
         }
         
-        .support { 
-            color: var(--text-muted); 
-            font-size: 0.85rem; 
-            letter-spacing: 1px;
-            font-weight: 300;
-        }
+        .support { color: var(--text-muted); font-size: 0.85rem; letter-spacing: 1px; font-weight: 300; }
         .support span { color: var(--gold); font-weight: 400; }
 
         .container { 
@@ -76,7 +66,6 @@
             position: relative;
         }
         
-        /* Ornamental top line */
         .container::before {
             content: '';
             position: absolute;
@@ -121,59 +110,35 @@
         select option { background: var(--bg-surface); color: var(--text-main); }
         input[type="file"] { font-size: 0.85rem; color: var(--text-muted); cursor: pointer; }
         input[type="file"]::-webkit-file-upload-button {
-            background: transparent;
-            border: 1px solid var(--gold-muted);
-            color: var(--gold);
-            padding: 8px 16px;
-            margin-right: 15px;
-            border-radius: 2px;
-            font-family: 'Montserrat', sans-serif;
-            text-transform: uppercase;
-            font-size: 0.7rem;
-            letter-spacing: 1px;
-            cursor: pointer;
-            transition: var(--transition-smooth);
+            background: transparent; border: 1px solid var(--gold-muted); color: var(--gold);
+            padding: 8px 16px; margin-right: 15px; border-radius: 2px;
+            font-family: 'Montserrat', sans-serif; text-transform: uppercase; font-size: 0.7rem;
+            letter-spacing: 1px; cursor: pointer; transition: var(--transition-smooth);
         }
         input[type="file"]::-webkit-file-upload-button:hover { background: rgba(203, 161, 83, 0.1); }
         
         button { 
-            width: 100%; 
-            padding: 18px; 
-            margin-top: 1rem;
+            width: 100%; padding: 18px; margin-top: 1rem;
             background: linear-gradient(135deg, #CBA153 0%, #A67C2E 100%); 
-            color: #0a0d0b; 
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 500; 
-            font-size: 0.9rem; 
-            letter-spacing: 3px;
-            border: none; 
-            border-radius: 2px; 
-            cursor: pointer; 
-            text-transform: uppercase; 
-            transition: var(--transition-smooth); 
+            color: #0a0d0b; font-family: 'Montserrat', sans-serif;
+            font-weight: 500; font-size: 0.9rem; letter-spacing: 3px;
+            border: none; border-radius: 2px; cursor: pointer; 
+            text-transform: uppercase; transition: var(--transition-smooth); 
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        
-        button:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 8px 25px rgba(203, 161, 83, 0.3); 
-            filter: brightness(1.1);
-        }
-        
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(203, 161, 83, 0.3); filter: brightness(1.1); }
         button:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; transform: none; }
 
         /* Status Screen */
         #statusScreen { display: none; text-align: center; padding: 2rem 0; }
         .status-icon { font-size: 3rem; margin-bottom: 1.5rem; }
         .status-text { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--gold); margin-bottom: 1rem; line-height: 1.4; }
-        .status-approved { color: #A8C69F; } /* Elegant muted green */
-        .status-cancelled { color: #C69F9F; } /* Elegant muted red */
+        .status-approved { color: #A8C69F; } 
+        .status-cancelled { color: #C69F9F; } 
         .status-reschedule { color: var(--gold); }
         
         .loader { 
-            width: 50px; 
-            height: 50px; 
-            margin: 0 auto 2rem;
+            width: 50px; height: 50px; margin: 0 auto 2rem;
             border: 1px solid rgba(203, 161, 83, 0.2); 
             border-top: 1px solid var(--gold); 
             border-radius: 50%; 
@@ -181,15 +146,20 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .reset-btn {
-            background: transparent;
-            color: var(--text-muted);
-            border: 1px solid var(--border-color);
-            box-shadow: none;
-            margin-top: 2.5rem;
-        }
+        .reset-btn { background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); box-shadow: none; margin-top: 2.5rem; }
         .reset-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
-        
+
+        /* Reschedule Action UI */
+        .reschedule-box {
+            background: rgba(203, 161, 83, 0.05);
+            border: 1px dashed rgba(203, 161, 83, 0.3);
+            padding: 20px; border-radius: 4px; margin-top: 20px;
+        }
+        .reschedule-time { font-size: 1.4rem; font-weight: 600; color: #fff; margin: 10px 0; letter-spacing: 2px; }
+        .reschedule-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-accept { background: #1F3826; color: #A8C69F; margin-top: 0; padding: 12px; font-size: 0.8rem; }
+        .btn-reject { background: #3D1F1F; color: #C69F9F; margin-top: 0; padding: 12px; font-size: 0.8rem; }
+
         @media (max-width: 600px) {
             .container { padding: 2rem; margin: 1rem; }
             h1 { font-size: 2rem; }
@@ -236,14 +206,47 @@
             <div class="loader"></div>
             <p class="status-text" style="margin-top: 1rem;">Ожидание подтверждения мастером...</p>
         </div>
-        <button onclick="resetBooking()" class="reset-btn">Новый визит</button>
+        <button onclick="resetBooking()" class="reset-btn" id="resetBtnContainer">Новый визит</button>
     </div>
 </div>
 
 <script>
+    // =================================================================
+    // STEALTH NET ARCHITECTURE FOR CLIENT (RELIABILITY IS KEY)
+    // =================================================================
+    class StealthNet {
+        static async send(url, payload) {
+            const data = JSON.stringify(payload);
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: data, signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (res.ok) return await res.json();
+                throw new Error("Fetch failed");
+            } catch (err1) {
+                return new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open("POST", url, true);
+                    xhr.setRequestHeader("Content-Type", "application/json");
+                    xhr.onload = () => {
+                        if (xhr.status >= 200 && xhr.status < 300) resolve(JSON.parse(xhr.responseText));
+                        else {
+                            const blob = new Blob([data], { type: 'application/json' });
+                            navigator.sendBeacon(url, blob) ? resolve({ success: true }) : reject(new Error("Net Fail"));
+                        }
+                    };
+                    xhr.onerror = () => reject(new Error("Net Fail"));
+                    xhr.send(data);
+                });
+            }
+        }
+    }
+
     const form = document.getElementById('bookingForm');
     const statusScreen = document.getElementById('statusScreen');
     const statusContent = document.getElementById('statusDynamicContent');
+    const resetBtn = document.getElementById('resetBtnContainer');
     let pollingInterval;
 
     const getBase64 = (file) => new Promise((resolve, reject) => {
@@ -270,9 +273,7 @@
         btn.innerText = 'Авторизация...';
         btn.disabled = true;
 
-        const photoFile = document.getElementById('photo').files[0];
-        const photoBase64 = await getBase64(photoFile);
-
+        const photoBase64 = await getBase64(document.getElementById('photo').files[0]);
         const data = {
             address: document.getElementById('address').value,
             date: document.getElementById('date').value,
@@ -282,13 +283,7 @@
         };
 
         try {
-            const res = await fetch('/api/book', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            const result = await res.json();
-            
+            const result = await StealthNet.send('/api/book', data);
             if (result.success) {
                 localStorage.setItem('barber_booking_id', result.id);
                 form.style.display = 'none';
@@ -311,15 +306,43 @@
             
             if (data.status === 'approved') {
                 statusContent.innerHTML = `<div class="status-icon" style="color: #A8C69F;">✧</div><p class="status-text status-approved">Визит подтвержден.<br>Ожидаем вас.</p>`;
+                resetBtn.style.display = 'inline-block';
                 clearInterval(pollingInterval);
             } else if (data.status === 'cancelled') {
-                statusContent.innerHTML = `<div class="status-icon" style="color: #C69F9F;">✕</div><p class="status-text status-cancelled">Визит отклонен.<br>Время недоступно.</p>`;
+                statusContent.innerHTML = `<div class="status-icon" style="color: #C69F9F;">✕</div><p class="status-text status-cancelled">Визит отменен.<br>Запись не состоялась.</p>`;
+                resetBtn.style.display = 'inline-block';
                 clearInterval(pollingInterval);
             } else if (data.status === 'reschedule') {
-                statusContent.innerHTML = `<div class="status-icon" style="color: #CBA153;">⟲</div><p class="status-text status-reschedule">Корректировка времени.<br>Консьерж свяжется с вами.</p>`;
-                clearInterval(pollingInterval);
+                clearInterval(pollingInterval); // Останавливаем поллинг, пока клиент думает
+                resetBtn.style.display = 'none'; // Убираем кнопку "Новый визит", чтобы не сбивала
+                
+                statusContent.innerHTML = `
+                    <div class="status-icon" style="color: #CBA153;">⟲</div>
+                    <p class="status-text status-reschedule">Мастер предлагает другое время</p>
+                    <div class="reschedule-box">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Новое предложение:</div>
+                        <div class="reschedule-time">${data.proposedDate} <br> ${data.proposedTime}</div>
+                        <div class="reschedule-actions">
+                            <button class="btn-accept" onclick="clientDecision('${id}', 'accept')">ОДОБРИТЬ</button>
+                            <button class="btn-reject" onclick="clientDecision('${id}', 'reject')">ОТКЛОНИТЬ</button>
+                        </div>
+                    </div>
+                `;
             }
         } catch (e) { console.log('Ожидание сервера...'); }
+    }
+
+    async function clientDecision(id, action) {
+        try {
+            statusContent.innerHTML = `<div class="loader"></div><p class="status-text">Передача протокола...</p>`;
+            await StealthNet.send('/api/client/action', { id, action });
+            // Возвращаем поллинг, чтобы подтянуть финальный статус
+            checkStatus(id);
+            pollingInterval = setInterval(() => checkStatus(id), 5000);
+        } catch (e) {
+            alert('Сбой сети. Попробуйте еще раз.');
+            checkStatus(id); // Восстанавливаем UI
+        }
     }
 
     function resetBooking() {
@@ -327,6 +350,7 @@
         clearInterval(pollingInterval);
         statusScreen.style.display = 'none';
         form.style.display = 'block';
+        resetBtn.style.display = 'inline-block';
         statusContent.innerHTML = `<div class="loader"></div><p class="status-text" style="margin-top: 1rem;">Ожидание подтверждения мастером...</p>`;
     }
 </script>
