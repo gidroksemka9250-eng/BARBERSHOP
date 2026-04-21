@@ -3,6 +3,7 @@
 // ARCHITECTURE: MONOLITHIC ZERO-DEPENDENCY NODE.JS SERVER
 // STORAGE: PERSISTENT JSON PERSISTENCE (/data/database.json)
 // SECURITY: ISOLATED API ENDPOINTS & FAIL-SAFE NOTIFICATIONS
+// UPDATE: TWO-WAY TIME NEGOTIATION PROTOCOL INCLUDED
 // =================================================================
 
 const http = require('http');
@@ -10,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-// --- СИСТЕМНЫЕ НАСТРОЙКИ И ТОКЕНЫ (БЕЗ ИЗМЕНЕНИЙ) ---
+// --- СИСТЕМНЫЕ НАСТРОЙКИ И ТОКЕНЫ ---
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.RAILWAY_STATIC_URL ? `https://${process.env.RAILWAY_STATIC_URL}` : `http://localhost:${PORT}`;
 
@@ -23,11 +24,10 @@ const CONFIG = {
     barkUrl: 'https://api.day.app/2mfG6468JsmXaVLaLETob/'
 };
 
-// --- МОДУЛЬ PERSISTENT STORAGE (ФИКС ДЛЯ RAILWAY VOLUME) ---
+// --- МОДУЛЬ PERSISTENT STORAGE ---
 const STORAGE_DIR = '/data'; 
 const DB_FILE = path.join(STORAGE_DIR, 'database.json');
 
-// Самовосстанавливающаяся база данных
 if (!fs.existsSync(STORAGE_DIR)) {
     try {
         fs.mkdirSync(STORAGE_DIR, { recursive: true });
@@ -109,7 +109,6 @@ const server = http.createServer(async (req, res) => {
     
     if (req.method === 'OPTIONS') { res.writeHead(200); return res.end(); }
 
-    // Роутинг статических файлов
     if (req.method === 'GET') {
         const filePath = req.url === '/' || req.url === '/index.html' ? 'index.html' : 
                          req.url === '/admin' ? 'admin.html' : null;
@@ -119,23 +118,31 @@ const server = http.createServer(async (req, res) => {
             return res.end(fs.readFileSync(path.join(__dirname, filePath)));
         }
         
-        // API Status Check
         if (req.url.startsWith('/api/status/')) {
             const id = req.url.split('/').pop();
             const booking = db.bookings.find(b => b.id === id);
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            return res.end(JSON.stringify(booking ? { status: booking.status } : { error: 'Not found' }));
+            
+            if (booking) {
+                // Если статус reschedule, отдаем также предложенное время
+                const responseData = { status: booking.status };
+                if (booking.status === 'reschedule') {
+                    responseData.proposedDate = booking.proposedDate;
+                    responseData.proposedTime = booking.proposedTime;
+                }
+                return res.end(JSON.stringify(responseData));
+            } else {
+                return res.end(JSON.stringify({ error: 'Not found' }));
+            }
         }
 
-        // API Admin Data
         if (req.url === '/api/admin/data') {
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            // Возвращаем только активные (pending) заявки для панели
-            return res.end(JSON.stringify(db.bookings.filter(b => b.status === 'pending')));
+            // Возвращаем заявки, которые ожидают решения админа ИЛИ где клиент думает над переносом
+            return res.end(JSON.stringify(db.bookings.filter(b => b.status === 'pending' || b.status === 'reschedule')));
         }
     }
 
-    // Обработка данных (Booking & Admin Actions)
     if (req.method === 'POST') {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
@@ -174,12 +181,49 @@ const server = http.createServer(async (req, res) => {
                 if (req.url === '/api/admin/action') {
                     const booking = db.bookings.find(b => b.id === data.id);
                     if (booking) {
-                        booking.status = data.action; // 'approved' | 'cancelled' | 'reschedule'
+                        booking.status = data.action; 
+                        
+                        // Если админ предлагает новое время
+                        if (data.action === 'reschedule' && data.newDate && data.newTime) {
+                            booking.proposedDate = data.newDate;
+                            booking.proposedTime = data.newTime;
+                        }
+
                         saveDb();
                         res.writeHead(200, { 'Content-Type': 'application/json' });
                         return res.end(JSON.stringify({ success: true }));
                     }
                 }
+
+                // ЛОГИКА ОТВЕТА КЛИЕНТА НА ПЕРЕНОС ВРЕМЕНИ
+                if (req.url === '/api/client/action') {
+                    const booking = db.bookings.find(b => b.id === data.id);
+                    if (booking && booking.status === 'reschedule') {
+                        if (data.action === 'accept') {
+                            booking.status = 'approved';
+                            booking.date = booking.proposedDate; // Перезаписываем старое время на новое
+                            booking.time = booking.proposedTime;
+                            
+                            // Уведомляем админа о том, что клиент согласился
+                            const botToken = booking.address === 'address1' ? CONFIG.bots.address1 : CONFIG.bots.address2;
+                            const msg = `✅ <b>КЛИЕНТ СОГЛАСИЛСЯ НА ПЕРЕНОС</b>\n\n👤 Тел: <code>${booking.phone}</code>\nНовое время: ${booking.date} в ${booking.time}`;
+                            await sendToTelegram(botToken, msg);
+
+                        } else if (data.action === 'reject') {
+                            booking.status = 'cancelled';
+                            
+                            // Уведомляем админа об отказе
+                            const botToken = booking.address === 'address1' ? CONFIG.bots.address1 : CONFIG.bots.address2;
+                            const msg = `❌ <b>КЛИЕНТ ОТКАЗАЛСЯ ОТ ПЕРЕНОСА</b>\n\n👤 Тел: <code>${booking.phone}</code>\nЗаявка отменена.`;
+                            await sendToTelegram(botToken, msg);
+                        }
+
+                        saveDb();
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        return res.end(JSON.stringify({ success: true }));
+                    }
+                }
+
             } catch (err) {
                 res.writeHead(400);
                 res.end(JSON.stringify({ error: "Invalid Request" }));
@@ -197,7 +241,6 @@ server.listen(PORT, '0.0.0.0', async () => {
     console.log(`[ONLINE] Elite Archangel Engine deployed on port ${PORT}`);
     console.log(`[STORAGE] Persistence active at ${DB_FILE}`);
     
-    // Авто-чекап при старте (летит в первый бот)
-    const startupMsg = `🚀 <b>Система Барбершопа Online</b>\n\n🔗 Сайт: ${HOST}\n🔑 Админка: ${HOST}/admin\n💾 Хранилище: OK`;
+    const startupMsg = `🚀 <b>Система Барбершопа Online (Pro Architecture)</b>\n\n🔗 Сайт: ${HOST}\n🔑 Админка: ${HOST}/admin\n💾 Хранилище: OK`;
     await sendToTelegram(CONFIG.bots.address1, startupMsg);
 });
