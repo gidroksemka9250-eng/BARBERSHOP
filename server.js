@@ -3,7 +3,7 @@
 // ARCHITECTURE: MONOLITHIC ZERO-DEPENDENCY NODE.JS SERVER
 // STORAGE: PERSISTENT JSON PERSISTENCE (/data/database.json)
 // SECURITY: ISOLATED API ENDPOINTS & FAIL-SAFE NOTIFICATIONS
-// UPDATE: TWO-WAY TIME NEGOTIATION PROTOCOL INCLUDED
+// PROTOCOL: NEGOTIATION & ANTI-CACHE SYSTEM INTEGRATED
 // =================================================================
 
 const http = require('http');
@@ -103,32 +103,43 @@ async function sendToBark(title, bodyText) {
 
 // --- ЯДРО ОБРАБОТКИ ЗАПРОСОВ ---
 const server = http.createServer(async (req, res) => {
+    // CORS Headers for pure isolation bypass
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control');
     
     if (req.method === 'OPTIONS') { res.writeHead(200); return res.end(); }
 
     if (req.method === 'GET') {
-        const filePath = req.url === '/' || req.url === '/index.html' ? 'index.html' : 
-                         req.url === '/admin' ? 'admin.html' : null;
+        // Очищаем URL от GET параметров (например ?_bc=123456)
+        const pureUrl = req.url.split('?')[0];
+
+        const filePath = pureUrl === '/' || pureUrl === '/index.html' ? 'index.html' : 
+                         pureUrl === '/admin' ? 'admin.html' : null;
         
         if (filePath) {
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
             return res.end(fs.readFileSync(path.join(__dirname, filePath)));
         }
         
-        if (req.url.startsWith('/api/status/')) {
-            const id = req.url.split('/').pop();
+        if (pureUrl.startsWith('/api/status/')) {
+            const id = pureUrl.split('/').pop();
             const booking = db.bookings.find(b => b.id === id);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
+            
+            // Запрещаем кэширование статуса на уровне сервера
+            res.writeHead(200, { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            });
             
             if (booking) {
-                // Если статус reschedule, отдаем также предложенное время
                 const responseData = { status: booking.status };
                 if (booking.status === 'reschedule') {
                     responseData.proposedDate = booking.proposedDate;
                     responseData.proposedTime = booking.proposedTime;
+                    console.log(`[NEGOTIATION] Sent proposed time to client ${id}: ${booking.proposedDate} ${booking.proposedTime}`);
                 }
                 return res.end(JSON.stringify(responseData));
             } else {
@@ -136,9 +147,11 @@ const server = http.createServer(async (req, res) => {
             }
         }
 
-        if (req.url === '/api/admin/data') {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            // Возвращаем заявки, которые ожидают решения админа ИЛИ где клиент думает над переносом
+        if (pureUrl === '/api/admin/data') {
+            res.writeHead(200, { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache'
+            });
             return res.end(JSON.stringify(db.bookings.filter(b => b.status === 'pending' || b.status === 'reschedule')));
         }
     }
@@ -148,10 +161,11 @@ const server = http.createServer(async (req, res) => {
         req.on('data', chunk => { body += chunk.toString(); });
         req.on('end', async () => {
             try {
+                const pureUrl = req.url.split('?')[0];
                 const data = JSON.parse(body);
 
                 // ЛОГИКА ЗАПИСИ КЛИЕНТА
-                if (req.url === '/api/book') {
+                if (pureUrl === '/api/book') {
                     const id = crypto.randomBytes(8).toString('hex');
                     const newBooking = {
                         id,
@@ -172,21 +186,22 @@ const server = http.createServer(async (req, res) => {
                     
                     sendToBark('Новый клиент!', `${data.date} в ${data.time}`);
                     await sendToTelegram(botToken, msg, data.photo);
-
+                    
+                    console.log(`[BOOKING] New entry created: ${id}`);
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ success: true, id }));
                 }
 
                 // ЛОГИКА АДМИН ПАНЕЛИ
-                if (req.url === '/api/admin/action') {
+                if (pureUrl === '/api/admin/action') {
                     const booking = db.bookings.find(b => b.id === data.id);
                     if (booking) {
                         booking.status = data.action; 
                         
-                        // Если админ предлагает новое время
                         if (data.action === 'reschedule' && data.newDate && data.newTime) {
                             booking.proposedDate = data.newDate;
                             booking.proposedTime = data.newTime;
+                            console.log(`[ADMIN] Proposed new time for ${data.id}: ${data.newDate} ${data.newTime}`);
                         }
 
                         saveDb();
@@ -196,15 +211,16 @@ const server = http.createServer(async (req, res) => {
                 }
 
                 // ЛОГИКА ОТВЕТА КЛИЕНТА НА ПЕРЕНОС ВРЕМЕНИ
-                if (req.url === '/api/client/action') {
+                if (pureUrl === '/api/client/action') {
                     const booking = db.bookings.find(b => b.id === data.id);
                     if (booking && booking.status === 'reschedule') {
+                        console.log(`[CLIENT] Decision received for ${data.id}: ${data.action}`);
+                        
                         if (data.action === 'accept') {
                             booking.status = 'approved';
-                            booking.date = booking.proposedDate; // Перезаписываем старое время на новое
+                            booking.date = booking.proposedDate; 
                             booking.time = booking.proposedTime;
                             
-                            // Уведомляем админа о том, что клиент согласился
                             const botToken = booking.address === 'address1' ? CONFIG.bots.address1 : CONFIG.bots.address2;
                             const msg = `✅ <b>КЛИЕНТ СОГЛАСИЛСЯ НА ПЕРЕНОС</b>\n\n👤 Тел: <code>${booking.phone}</code>\nНовое время: ${booking.date} в ${booking.time}`;
                             await sendToTelegram(botToken, msg);
@@ -212,7 +228,6 @@ const server = http.createServer(async (req, res) => {
                         } else if (data.action === 'reject') {
                             booking.status = 'cancelled';
                             
-                            // Уведомляем админа об отказе
                             const botToken = booking.address === 'address1' ? CONFIG.bots.address1 : CONFIG.bots.address2;
                             const msg = `❌ <b>КЛИЕНТ ОТКАЗАЛСЯ ОТ ПЕРЕНОСА</b>\n\n👤 Тел: <code>${booking.phone}</code>\nЗаявка отменена.`;
                             await sendToTelegram(botToken, msg);
@@ -225,6 +240,7 @@ const server = http.createServer(async (req, res) => {
                 }
 
             } catch (err) {
+                console.error("[ERROR] Bad Request:", err.message);
                 res.writeHead(400);
                 res.end(JSON.stringify({ error: "Invalid Request" }));
             }
@@ -241,6 +257,6 @@ server.listen(PORT, '0.0.0.0', async () => {
     console.log(`[ONLINE] Elite Archangel Engine deployed on port ${PORT}`);
     console.log(`[STORAGE] Persistence active at ${DB_FILE}`);
     
-    const startupMsg = `🚀 <b>Система Барбершопа Online (Pro Architecture)</b>\n\n🔗 Сайт: ${HOST}\n🔑 Админка: ${HOST}/admin\n💾 Хранилище: OK`;
+    const startupMsg = `🚀 <b>Система Барбершопа Online (Negotiation Ready)</b>\n\n🔗 Сайт: ${HOST}\n🔑 Админка: ${HOST}/admin\n💾 Хранилище: OK`;
     await sendToTelegram(CONFIG.bots.address1, startupMsg);
 });
