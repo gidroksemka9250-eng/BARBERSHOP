@@ -2,11 +2,24 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Barbershop | Premium Barber Studio</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Archangel | Premium Barbershop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,900;1,600&family=Montserrat:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        /* RESET & BASE */
+        /* =========================================
+           БАЗОВЫЕ НАСТРОЙКИ И ПЕРЕМЕННЫЕ
+        ========================================= */
+        :root {
+            --gold: #CBA153;
+            --gold-bright: #FFD700;
+            --bg-dark: #050706;
+            --bg-card: rgba(17, 22, 19, 0.7);
+            --text-main: #EAEAEA;
+            --text-muted: #7A857D;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -14,311 +27,312 @@
         }
 
         body {
-            background-color: #0a0a0a;
-            color: #fff;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
             font-family: 'Montserrat', sans-serif;
-            overflow-x: hidden;
+            overflow: hidden; /* Блок скролла для интро */
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* --- ИНТРО-ЭКРАН (ПРЕМИУМ ЭФФЕКТ) --- */
+        /* Кастомный скроллбар */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
+
+        /* =========================================
+           ИНТРО (ЭКРАН ЗАГРУЗКИ)
+        ========================================= */
         #intro-screen {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at center, #000000 0%, #0a0a0a 100%);
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
-            transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-            backdrop-filter: blur(2px);
+            z-index: 100;
+            transition: opacity 0.5s ease;
         }
 
         #intro-screen h1 {
-            color: #ffd700;
-            font-size: clamp(2.8rem, 12vw, 6rem);
+            font-family: 'Playfair Display', serif;
+            color: var(--gold-bright);
+            font-size: clamp(3rem, 8vw, 6rem);
             font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 0.2em;
+            letter-spacing: 12px;
             margin-bottom: 40px;
-            text-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
-            animation: textFocus 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+            animation: cinematicFocus 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+            text-align: center;
         }
 
         .open-btn {
             background: transparent;
-            color: #ffd700;
-            border: 2px solid #ffd700;
-            padding: 14px 48px;
-            font-size: 1.3rem;
-            font-weight: 700;
+            color: var(--gold-bright);
+            border: 1px solid var(--gold-bright);
+            padding: 16px 60px;
+            font-size: 1.2rem;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 500;
             text-transform: uppercase;
+            letter-spacing: 4px;
             cursor: pointer;
-            border-radius: 40px;
-            transition: all 0.3s ease;
-            letter-spacing: 2px;
-            backdrop-filter: blur(4px);
-            animation: slideUpFade 0.8s 0.6s both;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            animation: slideUpFade 1s 1.5s both;
+        }
+
+        .open-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,215,0,0.4), transparent);
+            transition: all 0.5s ease;
         }
 
         .open-btn:hover {
-            background: #ffd700;
+            background: var(--gold-bright);
             color: #000;
-            box-shadow: 0 0 30px #ffd700;
-            transform: scale(1.03);
-            border-color: #ffd700;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.6);
+            transform: translateY(-3px);
         }
 
-        .open-btn:disabled {
-            opacity: 0.6;
-            transform: scale(0.98);
-            cursor: not-allowed;
-            box-shadow: none;
-        }
+        .open-btn:hover::before { left: 100%; transition: 0.5s; }
 
-        /* --- ЭФФЕКТ "ФЛЕШКА" (CS2 STYLE) --- */
+        /* =========================================
+           ЭФФЕКТ ФЛЕШКИ CS2
+        ========================================= */
         #flashbang {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
             background-color: #ffffff;
             z-index: 9999;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.05s linear; /* почти мгновенное появление */
         }
 
-        .flash-active {
-            opacity: 1 !important;
-            transition: opacity 0.05s linear;
-        }
-
+        .flash-active { opacity: 1 !important; box-shadow: inset 0 0 100px #fff; }
         .flash-fade {
-            transition: opacity 3.5s cubic-bezier(0.2, 0.9, 0.3, 1.1) !important;
+            transition: opacity 4s cubic-bezier(0.1, 0.9, 0.2, 1);
             opacity: 0 !important;
         }
 
-        /* --- ОСНОВНОЙ КОНТЕНТ (ИЗНАЧАЛЬНО СКРЫТ) --- */
+        /* =========================================
+           ОСНОВНОЙ САЙТ
+        ========================================= */
         #main-site {
             display: none;
-            padding: 40px 24px 120px 24px;
+            padding: 60px 20px 120px 20px;
             max-width: 1400px;
             margin: 0 auto;
+            position: relative;
+        }
+
+        .site-header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: slideDownFade 1s ease forwards;
             opacity: 0;
-            animation: contentFadeIn 0.8s ease forwards;
         }
 
-        @keyframes contentFadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
+        .site-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            color: var(--gold);
+            letter-spacing: 2px;
         }
 
-        .main-title {
-            text-align: center;
-            font-size: clamp(1.8rem, 6vw, 3rem);
-            margin-bottom: 20px;
-            color: #ffd700;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            text-transform: uppercase;
-        }
-
-        .sub {
-            text-align: center;
-            color: #ccc;
-            margin-bottom: 50px;
+        .site-header p {
+            color: var(--text-muted);
+            margin-top: 10px;
             font-size: 1rem;
-            letter-spacing: 1px;
+            letter-spacing: 5px;
+            text-transform: uppercase;
         }
 
         /* ГАЛЕРЕЯ */
         .gallery {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 28px;
-            margin: 30px 0 50px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
         }
 
         .gallery-item {
-            border-radius: 20px;
+            position: relative;
+            border-radius: 4px;
             overflow: hidden;
-            box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.6);
-            background: #1a1a1a;
-            transform: translateY(40px);
             opacity: 0;
-            transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1), opacity 0.6s ease;
+            transform: translateY(50px);
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             cursor: pointer;
         }
 
-        .gallery-item.show-item {
-            opacity: 1;
-            transform: translateY(0);
+        .gallery-item::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 1px solid rgba(203, 161, 83, 0);
+            transition: border 0.5s ease;
+            z-index: 2;
         }
 
         .gallery-item img {
             width: 100%;
-            height: 300px;
+            height: 400px;
             object-fit: cover;
             display: block;
-            transition: transform 0.5s ease, filter 0.3s;
+            filter: grayscale(80%) brightness(0.7);
+            transition: all 0.8s ease;
         }
 
+        .gallery-item:hover::after { border: 1px solid rgba(203, 161, 83, 0.5); }
         .gallery-item:hover img {
-            transform: scale(1.05);
-            filter: brightness(1.08) contrast(1.05);
+            filter: grayscale(0%) brightness(1.1);
+            transform: scale(1.08);
         }
 
-        /* КНОПКА ЗАПИСИ (FIXED) */
+        .show-item { opacity: 1; transform: translateY(0); }
+
+        /* =========================================
+           КНОПКА ЗАПИСИ (ПЛАВАЮЩАЯ)
+        ========================================= */
         .book-now-container {
             position: fixed;
-            bottom: 30px;
+            bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 200;
-            width: auto;
-            text-align: center;
+            z-index: 50;
+            opacity: 0;
+            animation: fadeInBtn 1s 2s forwards;
         }
 
         .book-btn {
-            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
-            border: none;
-            padding: 16px 44px;
-            font-size: 1.4rem;
-            font-weight: 900;
+            background: rgba(20, 20, 20, 0.8);
+            backdrop-filter: blur(10px);
+            color: var(--gold);
+            border: 1px solid var(--gold);
+            padding: 20px 70px;
+            font-size: 1.2rem;
             font-family: 'Montserrat', sans-serif;
-            border-radius: 60px;
-            cursor: pointer;
-            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.5);
-            transition: all 0.2s ease;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #0a0a0a;
-            animation: pulseGlow 2.2s infinite;
+            letter-spacing: 3px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(203,161,83,0.1);
+            transition: all 0.3s ease;
+            border-radius: 2px;
         }
 
-        .book-btn:active {
-            transform: scale(0.96);
-            box-shadow: 0 2px 12px rgba(255, 215, 0, 0.8);
+        .book-btn:hover {
+            background: var(--gold);
+            color: #000;
+            box-shadow: 0 0 30px rgba(203, 161, 83, 0.6);
+            transform: scale(1.05);
         }
 
-        /* МОДАЛЬНОЕ ОКНО ДЛЯ ЗАПИСИ */
+        /* =========================================
+           МОДАЛЬНОЕ ОКНО БРОНИРОВАНИЯ
+        ========================================= */
         .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(8px);
-            z-index: 2000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            visibility: hidden;
+            z-index: 1000;
+            justify-content: center; align-items: center;
             opacity: 0;
-            transition: visibility 0.2s, opacity 0.25s ease;
+            transition: opacity 0.4s ease;
         }
 
-        .modal-overlay.active {
-            visibility: visible;
-            opacity: 1;
+        .modal-active { display: flex; opacity: 1; }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--gold);
+            padding: 40px;
+            width: 90%; max-width: 500px;
+            border-radius: 2px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+            position: relative;
+            transform: translateY(30px);
+            transition: transform 0.4s ease;
         }
 
-        .modal-card {
-            background: #111;
-            max-width: 460px;
-            width: 90%;
-            border-radius: 28px;
-            border: 1px solid #ffd70055;
-            padding: 32px 24px;
-            text-align: center;
-            box-shadow: 0 25px 40px rgba(0,0,0,0.5);
-            transform: scale(0.96);
-            transition: transform 0.2s ease;
-        }
+        .modal-active .modal-content { transform: translateY(0); }
 
-        .modal-overlay.active .modal-card {
-            transform: scale(1);
-        }
-
-        .modal-card h3 {
+        .modal-title {
+            font-family: 'Playfair Display', serif;
+            color: var(--gold);
             font-size: 2rem;
-            color: #ffd700;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            text-align: center;
         }
 
-        .modal-card input {
-            width: 100%;
-            padding: 14px 18px;
-            margin: 12px 0;
-            background: #222;
-            border: 1px solid #444;
-            border-radius: 60px;
-            color: white;
-            font-size: 1rem;
-            outline: none;
-            transition: 0.2s;
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
         }
 
-        .modal-card input:focus {
-            border-color: #ffd700;
+        .modal-input {
+            width: 100%; padding: 12px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-main);
+            font-family: 'Montserrat', sans-serif;
+            outline: none; transition: 0.3s;
+            border-radius: 2px;
         }
 
-        .modal-card button {
-            background: #ffd700;
-            border: none;
-            padding: 12px 28px;
-            font-weight: bold;
-            border-radius: 50px;
-            margin-top: 20px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: 0.2s;
-        }
+        .modal-input:focus { border-color: var(--gold); background: rgba(0,0,0,0.8); }
+        input[type="file"] { padding: 8px; font-size: 0.8rem; }
 
-        .close-modal {
-            background: #333;
-            color: white;
-            margin-left: 12px;
+        .modal-actions { display: flex; gap: 15px; margin-top: 30px; }
+        .modal-btn {
+            flex: 1; padding: 15px; border: none; font-weight: 600; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px; transition: 0.3s;
         }
+        
+        .btn-submit { background: var(--gold); color: #000; }
+        .btn-submit:hover { box-shadow: 0 0 20px rgba(203,161,83,0.5); }
+        .btn-close { background: transparent; color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); }
+        .btn-close:hover { border-color: #fff; color: #fff; }
 
-        .close-modal:hover {
-            background: #555;
+        /* =========================================
+           АНИМАЦИИ (KEYFRAMES)
+        ========================================= */
+        @keyframes cinematicFocus {
+            0% { filter: blur(20px); opacity: 0; transform: scale(1.1); letter-spacing: 20px; }
+            100% { filter: blur(0); opacity: 1; transform: scale(1); letter-spacing: 12px; }
         }
-
-        /* АНИМАЦИИ */
-        @keyframes textFocus {
-            0% { filter: blur(16px); opacity: 0; transform: scale(1.1); letter-spacing: 15px; }
-            100% { filter: blur(0); opacity: 1; transform: scale(1); letter-spacing: 0.2em; }
-        }
-
         @keyframes slideUpFade {
-            from { opacity: 0; transform: translateY(40px); }
-            to { opacity: 1; transform: translateY(0); }
+            0% { opacity: 0; transform: translateY(40px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideDownFade {
+            0% { opacity: 0; transform: translateY(-30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInBtn {
+            0% { opacity: 0; transform: translate(-50%, 20px); }
+            100% { opacity: 1; transform: translate(-50%, 0); }
         }
 
-        @keyframes pulseGlow {
-            0% { box-shadow: 0 0 5px #ffd70055, 0 5px 15px rgba(0,0,0,0.3); }
-            50% { box-shadow: 0 0 25px #ffd700cc, 0 8px 25px rgba(0,0,0,0.4); }
-            100% { box-shadow: 0 0 5px #ffd70055, 0 5px 15px rgba(0,0,0,0.3); }
-        }
-
-        @media (max-width: 640px) {
-            .gallery {
-                gap: 16px;
+        @media (max-width: 768px) {
+            #intro-screen h1 { letter-spacing: 6px; }
+            @keyframes cinematicFocus {
+                100% { letter-spacing: 6px; }
             }
-            .book-btn {
-                padding: 12px 32px;
-                font-size: 1.2rem;
-            }
-            .modal-card h3 {
-                font-size: 1.6rem;
-            }
+            .modal-content { padding: 25px; }
         }
     </style>
 </head>
@@ -326,187 +340,178 @@
 
     <div id="flashbang"></div>
 
-    <!-- ИНТРО -->
     <div id="intro-screen">
-        <h1>BARBERSHOP</h1>
-        <button class="open-btn" id="openBtn">Открыть студию</button>
+        <h1>Barbershop</h1>
+        <button class="open-btn" id="openBtn">Открыть сайт</button>
     </div>
 
-    <!-- ОСНОВНОЙ САЙТ -->
     <div id="main-site">
-        <h2 class="main-title">Premium Cuts</h2>
-        <div class="sub">искусство мужского стиля</div>
+        <div class="site-header" id="site-header">
+            <h2>Наши Работы</h2>
+            <p>Искусство Мужского Стиля</p>
+        </div>
         
-        <div class="gallery" id="galleryContainer">
-            <!-- Высококачественные изображения (релевантные барбершопу) -->
-            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&auto=format" alt="Modern fade haircut" loading="lazy"></div>
-            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&auto=format" alt="Classic beard trim" loading="lazy"></div>
-            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=800&auto=format" alt="Hot towel shave" loading="lazy"></div>
-            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1512496015851-a1c84cb15b94?w=800&auto=format" alt="Men haircut salon" loading="lazy"></div>
-            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=800&auto=format" alt="Styling products" loading="lazy"></div>
-            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1521590832167-7bfc17454f54?w=800&auto=format" alt="Barber tools" loading="lazy"></div>
+        <div class="gallery">
+            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=800&auto=format&fit=crop" alt="Work 1"></div>
+            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=800&auto=format&fit=crop" alt="Work 2"></div>
+            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=800&auto=format&fit=crop" alt="Work 3"></div>
+            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1512496015851-a1c84cb15b94?q=80&w=800&auto=format&fit=crop" alt="Work 4"></div>
+            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=800&auto=format&fit=crop" alt="Work 5"></div>
+            <div class="gallery-item"><img src="https://images.unsplash.com/photo-1521590832167-7bfc17454f54?q=80&w=800&auto=format&fit=crop" alt="Work 6"></div>
         </div>
 
         <div class="book-now-container">
-            <button class="book-btn" id="bookNowBtn">✂️ Записаться</button>
+            <button class="book-btn" id="openModalBtn">Записаться</button>
         </div>
     </div>
 
-    <!-- МОДАЛКА ЗАПИСИ -->
-    <div id="bookingModal" class="modal-overlay">
-        <div class="modal-card">
-            <h3>✂️ Запись</h3>
-            <input type="text" id="clientName" placeholder="Ваше имя" autocomplete="off">
-            <input type="tel" id="clientPhone" placeholder="Номер телефона">
-            <div>
-                <button id="submitBooking">Записаться</button>
-                <button id="closeModalBtn" class="close-modal">Отмена</button>
+    <div class="modal-overlay" id="bookingModal">
+        <div class="modal-content">
+            <div class="modal-title">Визит</div>
+            
+            <div class="form-group">
+                <label>Выберите филиал</label>
+                <select class="modal-input" id="bookAddress">
+                    <option value="address1">Grand Salon (Адрес 1)</option>
+                    <option value="address2">Private Lounge (Адрес 2)</option>
+                </select>
+            </div>
+            
+            <div style="display:flex; gap:15px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Дата</label>
+                    <input type="date" class="modal-input" id="bookDate">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>Время</label>
+                    <input type="time" class="modal-input" id="bookTime">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Телефон</label>
+                <input type="tel" class="modal-input" id="bookPhone" placeholder="+7 (999) 000-00-00">
+            </div>
+
+            <div class="form-group">
+                <label>Фото для барбера (Опционально)</label>
+                <input type="file" class="modal-input" id="bookPhoto" accept="image/*">
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn btn-close" id="closeModalBtn">Отмена</button>
+                <button class="modal-btn btn-submit" id="submitBookingBtn">Отправить</button>
             </div>
         </div>
     </div>
 
     <script>
-        (function() {
-            // --- ЭЛЕМЕНТЫ ---
-            const introScreen = document.getElementById('intro-screen');
-            const mainSite = document.getElementById('main-site');
+        // --- 1. ЭФФЕКТ ФЛЕШКИ И ПЕРЕХОД ---
+        document.getElementById('openBtn').addEventListener('click', function() {
             const flashbang = document.getElementById('flashbang');
-            const openBtn = document.getElementById('openBtn');
-            const bookBtn = document.getElementById('bookNowBtn');
-            const modal = document.getElementById('bookingModal');
-            const closeModalBtn = document.getElementById('closeModalBtn');
-            const submitBookingBtn = document.getElementById('submitBooking');
+            const intro = document.getElementById('intro-screen');
+            const mainSite = document.getElementById('main-site');
             
-            let isOpened = false;     // Флаг, чтобы нельзя было повторно вызвать интро-анимацию
-            let flashTimeout = null;
-            let galleryItems = [];
-
-            // --- ФУНКЦИЯ ОТКРЫТИЯ САЙТА С ЭФФЕКТОМ ФЛЕШ ---
-            function openSiteWithFlash() {
-                if (isOpened) return;
-                isOpened = true;
-
-                // 1. Отключаем кнопку, чтобы избежать повторного клика во время анимации
-                openBtn.disabled = true;
+            // Моментальная ослепляющая вспышка
+            flashbang.classList.add('flash-active');
+            
+            setTimeout(() => {
+                // Переключаем экраны под белым фоном
+                intro.style.display = 'none';
+                mainSite.style.display = 'block';
+                document.body.style.overflow = 'auto'; // Возвращаем скролл
                 
-                // 2. Мгновенная вспышка (100% белый)
-                flashbang.classList.add('flash-active');
+                // Начинаем долгое затухание (fade-out)
+                flashbang.classList.remove('flash-active');
+                flashbang.classList.add('flash-fade');
                 
-                // 3. Через 90мс убираем интро, показываем контент, запускаем долгое затухание флешки
-                setTimeout(() => {
-                    // Скрываем интро с плавностью (можно сразу display none, но для красоты плавно)
-                    introScreen.style.opacity = '0';
+                // Запускаем появление заголовка
+                document.getElementById('site-header').style.opacity = '1';
+
+                // Красивый каскадный выход картинок
+                const items = document.querySelectorAll('.gallery-item');
+                items.forEach((item, index) => {
                     setTimeout(() => {
-                        introScreen.style.display = 'none';
-                    }, 400);
-                    
-                    // Показываем основной сайт
-                    mainSite.style.display = 'block';
-                    document.body.style.overflow = 'auto'; // Разрешаем скролл
-                    
-                    // Запускаем долгое исчезновение флешки (эффект "засвет" как в CS2)
-                    flashbang.classList.remove('flash-active');
-                    flashbang.classList.add('flash-fade');
-                    
-                    // Чистим классы флешки после завершения анимации (чтобы не влиять на будущие элементы)
-                    if (flashTimeout) clearTimeout(flashTimeout);
-                    flashTimeout = setTimeout(() => {
-                        flashbang.classList.remove('flash-fade');
-                        flashbang.style.transition = ''; // сброс
-                    }, 3800); // чуть дольше, чем transition (3.5s)
-                    
-                    // --- Анимация появления карточек галереи с задержкой ---
-                    if (galleryItems.length === 0) {
-                        galleryItems = document.querySelectorAll('.gallery-item');
-                    }
-                    galleryItems.forEach((item, idx) => {
-                        setTimeout(() => {
-                            item.classList.add('show-item');
-                        }, 350 + (idx * 120));
-                    });
-                    
-                }, 90); // держим вспышку 90мс (коротко, но ярко)
+                        item.classList.add('show-item');
+                    }, 400 + (index * 150));
+                });
+
+            }, 150); // Держим фулл-белый экран 150мс
+        });
+
+        // --- 2. ЛОГИКА МОДАЛЬНОГО ОКНА ---
+        const modal = document.getElementById('bookingModal');
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const submitBtn = document.getElementById('submitBookingBtn');
+
+        openModalBtn.addEventListener('click', () => {
+            modal.classList.add('modal-active');
+            // Ставим сегодняшнюю дату по умолчанию
+            document.getElementById('bookDate').value = new Date().toISOString().split('T')[0];
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            modal.classList.remove('modal-active');
+        });
+
+        // --- 3. ОТПРАВКА ДАННЫХ НА SERVER.JS ---
+        submitBtn.addEventListener('click', async () => {
+            const address = document.getElementById('bookAddress').value;
+            const date = document.getElementById('bookDate').value;
+            const time = document.getElementById('bookTime').value;
+            const phone = document.getElementById('bookPhone').value;
+            const photoInput = document.getElementById('bookPhoto');
+
+            if (!date || !time || !phone) {
+                alert("Пожалуйста, заполните дату, время и телефон.");
+                return;
             }
+
+            submitBtn.innerText = 'ОТПРАВКА...';
+            submitBtn.style.pointerEvents = 'none';
+
+            let photoBase64 = null;
             
-            // --- ОБРАБОТЧИК КНОПКИ ОТКРЫТИЯ ---
-            if (openBtn) {
-                openBtn.addEventListener('click', openSiteWithFlash);
-            }
-            
-            // --- МОДАЛЬНОЕ ОКНО ЗАПИСИ (РАБОТАЕТ ПОСЛЕ ОТКРЫТИЯ САЙТА) ---
-            function openModal() {
-                if (!mainSite.style.display || mainSite.style.display === 'none') {
-                    // если сайт еще не открыт (случайно кликнули на кнопку, которой нет на экране, но на всякий случай)
-                    return;
-                }
-                modal.classList.add('active');
-                document.body.style.overflow = 'hidden'; // блокируем фон
-            }
-            
-            function closeModal() {
-                modal.classList.remove('active');
-                document.body.style.overflow = 'auto';
-                // Очищаем поля
-                document.getElementById('clientName').value = '';
-                document.getElementById('clientPhone').value = '';
-            }
-            
-            // Отправка заявки (демо-уведомление + закрытие)
-            function submitBooking() {
-                const nameInput = document.getElementById('clientName');
-                const phoneInput = document.getElementById('clientPhone');
-                const name = nameInput.value.trim();
-                const phone = phoneInput.value.trim();
-                
-                if (!name || !phone) {
-                    alert('❌ Пожалуйста, заполните имя и номер телефона');
-                    return;
-                }
-                if (phone.length < 6) {
-                    alert('📞 Введите корректный номер телефона');
-                    return;
-                }
-                
-                // Имитация отправки
-                alert(`✅ ${name}, спасибо! Мы свяжемся с вами по номеру ${phone} в ближайшее время.`);
-                closeModal();
-            }
-            
-            // Привязываем события (кнопки появятся только после открытия main-site, но лучше навесить заранее с проверкой)
-            if (bookBtn) {
-                bookBtn.addEventListener('click', openModal);
-            }
-            if (closeModalBtn) {
-                closeModalBtn.addEventListener('click', closeModal);
-            }
-            if (submitBookingBtn) {
-                submitBookingBtn.addEventListener('click', submitBooking);
-            }
-            
-            // Закрытие модалки по клику на фон (оверлей)
-            if (modal) {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === modal) closeModal();
+            // Если прикреплено фото - конвертируем в Base64 для сервера
+            if (photoInput.files && photoInput.files[0]) {
+                const file = photoInput.files[0];
+                photoBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(file);
                 });
             }
-            
-            // Предотвращаем случайный скролл body до открытия (интро блокирует)
-            document.body.style.overflow = 'hidden';
-            
-            // Добавляем ленивую загрузку картинок для производительности
-            if ('loading' in HTMLImageElement.prototype) {
-                const images = document.querySelectorAll('img');
-                images.forEach(img => {
-                    if (img.loading !== 'lazy') img.loading = 'lazy';
+
+            const payload = { address, date, time, phone, photo: photoBase64 };
+
+            try {
+                // Вызов API твоего сервера
+                const response = await fetch('/api/book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Заявка успешно отправлена! Ожидайте подтверждения.');
+                    modal.classList.remove('modal-active');
+                    // Очистка формы
+                    document.getElementById('bookPhone').value = '';
+                    document.getElementById('bookPhoto').value = '';
+                } else {
+                    alert('Ошибка сервера. Попробуйте еще раз.');
+                }
+            } catch (err) {
+                console.error('API Error:', err);
+                alert('Не удалось связаться с сервером. Проверьте соединение.');
+            } finally {
+                submitBtn.innerText = 'ОТПРАВИТЬ';
+                submitBtn.style.pointerEvents = 'auto';
             }
-            
-            // Дополнительно: если изображения не загрузились из unsplash, но они стабильны.
-            // Эффект при клике на картинку (можно сделать просмотр в будущем, но не обязательно)
-            // Обработчик нажатия на книгу – не забыть про динамическое добавление, но у нас bookBtn статичен.
-            
-            // На случай, если пользователь захочет переоткрыть сайт? Не нужно, интро уже нет.
-        })();
+        });
     </script>
 </body>
 </html>
