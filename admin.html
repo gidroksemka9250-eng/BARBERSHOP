@@ -132,6 +132,42 @@
             grid-column: 1 / -1; 
             font-family: 'Playfair Display', serif;
         }
+
+        /* PREMIUM MODAL STYLES */
+        .modal-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 13, 11, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--gold);
+            padding: 30px;
+            width: 90%; max-width: 400px;
+            border-radius: 4px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            position: relative;
+        }
+        .modal-title { color: var(--gold); font-family: 'Playfair Display', serif; font-size: 1.5rem; margin-bottom: 20px; text-align: center; }
+        .modal-input {
+            width: 100%; padding: 10px; margin-bottom: 15px;
+            background: var(--bg-base); border: 1px solid var(--border);
+            color: var(--text-main); font-family: 'Montserrat', sans-serif;
+            box-sizing: border-box; outline: none; transition: 0.3s;
+        }
+        .modal-input:focus { border-color: var(--gold); }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn-confirm { background: var(--gold); color: #000; border: none; font-weight: 600; }
+        .modal-btn-confirm:hover { filter: brightness(1.2); }
+        .modal-btn-close { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+        .modal-btn-close:hover { background: #1a1a1a; color: #fff; }
+
+        .status-badge { display: inline-block; padding: 3px 8px; border-radius: 2px; font-size: 0.6rem; letter-spacing: 1px; font-weight: 600; }
+        .status-pending { background: rgba(255,255,255,0.1); color: #fff; }
+        .status-reschedule-wait { background: rgba(203, 161, 83, 0.2); color: var(--gold); }
     </style>
 </head>
 <body>
@@ -141,7 +177,74 @@
     <div class="empty">Загрузка данных разведки...</div>
 </div>
 
+<div class="modal-overlay" id="rescheduleModal">
+    <div class="modal-content">
+        <div class="modal-title">Назначить новое время</div>
+        <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Дата:</label>
+        <input type="date" class="modal-input" id="newDate">
+        <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-top: 10px; display: block;">Время:</label>
+        <input type="time" class="modal-input" id="newTime">
+        
+        <div class="modal-actions">
+            <button class="modal-btn-close" onclick="closeModal()">Отмена</button>
+            <button class="modal-btn-confirm" id="confirmRescheduleBtn">Отправить</button>
+        </div>
+    </div>
+</div>
+
 <script>
+    // =================================================================
+    // STEALTH NET ARCHITECTURE: 3-LAYER NETWORK FALLBACK SYSTEM
+    // =================================================================
+    class StealthNet {
+        static async send(url, payload) {
+            const data = JSON.stringify(payload);
+            
+            // Method 1: Modern Fetch API (Primary)
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: data,
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (res.ok) return await res.json();
+                throw new Error("Fetch failed with status: " + res.status);
+            } catch (err1) {
+                console.warn("[StealthNet] Fetch failed, initializing XHR fallback...", err1);
+                
+                // Method 2: XMLHttpRequest (Secondary)
+                return new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open("POST", url, true);
+                    xhr.setRequestHeader("Content-Type", "application/json");
+                    xhr.onload = function () {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            resolve(JSON.parse(xhr.responseText));
+                        } else {
+                            console.warn("[StealthNet] XHR failed, initializing Beacon fallback...");
+                            // Method 3: Navigator.sendBeacon (Terminal Fallback)
+                            const blob = new Blob([data], { type: 'application/json' });
+                            const beaconSuccess = navigator.sendBeacon(url, blob);
+                            if (beaconSuccess) {
+                                resolve({ success: true, warning: 'Beacon used' });
+                            } else {
+                                reject(new Error("All StealthNet transport layers failed."));
+                            }
+                        }
+                    };
+                    xhr.onerror = () => reject(new Error("Network Error"));
+                    xhr.send(data);
+                });
+            }
+        }
+    }
+
+    let activeRescheduleId = null;
+
     async function fetchRequests() {
         try {
             const res = await fetch('/api/admin/data');
@@ -157,20 +260,31 @@
             data.forEach(req => {
                 const imgTag = req.photo ? `<img src="${req.photo}" alt="Client Photo">` : `<div style="height:220px; background:#050706; border: 1px solid var(--border); border-radius:2px; display:flex; align-items:center; justify-content:center; color:var(--text-muted); margin-bottom:20px; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase;">Без фотофиксации</div>`;
                 
+                const statusBadge = req.status === 'reschedule' 
+                    ? `<span class="status-badge status-reschedule-wait">ОЖИДАЕТ ОТВЕТА КЛИЕНТА</span>` 
+                    : `<span class="status-badge status-pending">НОВЫЙ</span>`;
+
+                const buttons = req.status === 'pending' 
+                    ? `
+                        <button class="btn-approve" onclick="takeAction('${req.id}', 'approved')">Принять</button>
+                        <button class="btn-reschedule" onclick="openRescheduleModal('${req.id}')">Сдвинуть</button>
+                        <button class="btn-cancel" onclick="takeAction('${req.id}', 'cancelled')">Отклонить</button>
+                    ` 
+                    : `<div style="text-align:center; width:100%; font-size:0.8rem; color:var(--gold); padding: 10px;">Предложено: ${req.proposedDate} в ${req.proposedTime}</div>`;
+
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
                     ${imgTag}
                     <div class="info">
+                        <div style="border:none; margin-bottom: 15px; display:block; text-align:right;">${statusBadge}</div>
                         <div><span>Объект</span> ${req.address === 'address1' ? 'Grand Salon' : 'Private Lounge'}</div>
                         <div><span>Дата</span> ${req.date}</div>
                         <div><span>Время</span> ${req.time}</div>
                         <div><span>Контакт</span> ${req.phone}</div>
                     </div>
                     <div class="actions">
-                        <button class="btn-approve" onclick="takeAction('${req.id}', 'approved')">Принять</button>
-                        <button class="btn-reschedule" onclick="takeAction('${req.id}', 'reschedule')">Сдвинуть</button>
-                        <button class="btn-cancel" onclick="takeAction('${req.id}', 'cancelled')">Отклонить</button>
+                        ${buttons}
                     </div>
                 `;
                 grid.appendChild(card);
@@ -180,20 +294,46 @@
         }
     }
 
-    async function takeAction(id, action) {
-        if (!confirm(`Подтвердите директиву: ${action}?`)) return;
+    async function takeAction(id, action, newDate = null, newTime = null) {
+        if (action !== 'reschedule' && !confirm(`Подтвердите директиву: ${action}?`)) return;
         
         try {
-            await fetch('/api/admin/action', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, action })
-            });
+            const payload = { id, action };
+            if (action === 'reschedule') {
+                payload.newDate = newDate;
+                payload.newTime = newTime;
+            }
+            
+            await StealthNet.send('/api/admin/action', payload);
             fetchRequests(); 
         } catch (e) {
             alert("Ошибка защищенного канала при отправке директивы.");
         }
     }
+
+    // Modal Logic
+    function openRescheduleModal(id) {
+        activeRescheduleId = id;
+        document.getElementById('rescheduleModal').style.display = 'flex';
+        
+        // Предзаполняем текущей датой
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('newDate').value = today;
+    }
+
+    function closeModal() {
+        document.getElementById('rescheduleModal').style.display = 'none';
+        activeRescheduleId = null;
+    }
+
+    document.getElementById('confirmRescheduleBtn').addEventListener('click', () => {
+        const d = document.getElementById('newDate').value;
+        const t = document.getElementById('newTime').value;
+        if (!d || !t) return alert("Введите и дату, и время!");
+        
+        takeAction(activeRescheduleId, 'reschedule', d, t);
+        closeModal();
+    });
 
     fetchRequests();
     setInterval(fetchRequests, 10000);
